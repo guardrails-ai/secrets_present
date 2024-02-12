@@ -1,4 +1,4 @@
-## Details
+## Overview
 
 | Developed by | Guardrails AI |
 | --- | --- |
@@ -12,13 +12,15 @@
 
 This validator monitors any text (input or output) and detects secrets present in the text. Under-the-hood, the validator uses the `detect-secrets` library to check whether the text contains any secrets. If any secrets are detected, the validator fails and returns the text with the secrets replaced with asterisks. Otherwise, the validator returns the generated code snippet.
 
-## Example Usage Guide
-
-### Installation
+## Installation
 
 ```bash
-$ gudardrails hub install detect-secrets
+$ gudardrails hub install hub://guardrails/detect_secrets
 ```
+
+## Usage Examples
+
+
 
 ### Initialization
 
