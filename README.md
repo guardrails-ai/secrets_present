@@ -19,7 +19,7 @@ This validator monitors any text (input or output) and detects secrets present i
 ## Installation
 
 ```bash
-$ gudardrails hub install hub://guardrails/detect_secrets
+$ guardrails hub install hub://guardrails/detect_secrets
 ```
 
 ## Usage Examples
