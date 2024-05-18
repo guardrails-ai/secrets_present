@@ -5,7 +5,7 @@
 | Validator type | Safety |
 | Blog |  |
 | License | Apache 2 |
-| Input/Output | Output |
+| Input/Output | Input, Output |
 
 ## Description
 
