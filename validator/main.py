@@ -1,4 +1,5 @@
 import os
+import tempfile
 import warnings
 from typing import Any, Callable, Dict, List, Tuple, Union
 
@@ -52,8 +53,6 @@ class SecretsPresent(Validator):
 
     def __init__(self, on_fail: Union[Callable[..., Any], None] = None, **kwargs):
         super().__init__(on_fail, **kwargs)
-
-        self.temp_file_name = "temp.txt"
         self.mask = "********"
 
     def get_unique_secrets(self, value: str) -> Tuple[Dict[str, Any], List[str]]:
@@ -68,9 +67,10 @@ class SecretsPresent(Validator):
             lines (List[str]): The lines of the generated code snippet.
         """
         try:
-            # Write each line of value to a new file
-            with open(self.temp_file_name, "w") as f:
-                f.writelines(value)
+            # Create a unique temp file for each call
+            with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as tmp:
+                tmp.write(value)
+                temp_file_name = tmp.name
         except Exception as e:
             raise OSError(
                 "Problems creating or deleting the temporary file. "
@@ -86,7 +86,7 @@ class SecretsPresent(Validator):
 
             # Scan the file for secrets
             with settings.default_settings():
-                secrets.scan_file(self.temp_file_name)
+                secrets.scan_file(temp_file_name)
         except ImportError:
             raise ValueError(
                 "You must install detect-secrets in order to "
@@ -113,7 +113,7 @@ class SecretsPresent(Validator):
 
         try:
             # File no longer needed, read the lines from the file
-            with open(self.temp_file_name, "r") as f:
+            with open(temp_file_name, "r") as f:
                 lines = f.readlines()
         except Exception as e:
             raise OSError(
@@ -122,8 +122,9 @@ class SecretsPresent(Validator):
             ) from e
 
         try:
-            # Delete the file
-            os.remove(self.temp_file_name)
+            # Always cleanup temp file
+            if temp_file_name and os.path.exists(temp_file_name):
+                os.remove(temp_file_name)
         except Exception as e:
             raise OSError(
                 "Problems deleting the temporary file. "
