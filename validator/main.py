@@ -1,4 +1,5 @@
 import os
+import tempfile
 import warnings
 from typing import Any, Callable, Dict, List, Tuple, Union
 
@@ -53,7 +54,6 @@ class SecretsPresent(Validator):
     def __init__(self, on_fail: Union[Callable[..., Any], None] = None, **kwargs):
         super().__init__(on_fail, **kwargs)
 
-        self.temp_file_name = "temp.txt"
         self.mask = "********"
 
     def get_unique_secrets(self, value: str) -> Tuple[Dict[str, Any], List[str]]:
@@ -67,68 +67,46 @@ class SecretsPresent(Validator):
                 line numbers.
             lines (List[str]): The lines of the generated code snippet.
         """
+        # Use a unique temp file per call to avoid race conditions when
+        # multiple SecretsPresent instances run concurrently.
+        fd, temp_path = tempfile.mkstemp(suffix=".txt", prefix="guardrails_secrets_")
         try:
-            # Write each line of value to a new file
-            with open(self.temp_file_name, "w") as f:
-                f.writelines(value)
-        except Exception as e:
-            raise OSError(
-                "Problems creating or deleting the temporary file. "
-                "Please check the permissions of the current directory."
-            ) from e
+            with os.fdopen(fd, "w") as f:
+                f.write(value)
 
-        try:
-            # Create a new secrets collection
-            from detect_secrets import settings
-            from detect_secrets.core.secrets_collection import SecretsCollection
+            try:
+                from detect_secrets import settings
+                from detect_secrets.core.secrets_collection import SecretsCollection
 
-            secrets = SecretsCollection()
+                secrets = SecretsCollection()
 
-            # Scan the file for secrets
-            with settings.default_settings():
-                secrets.scan_file(self.temp_file_name)
-        except ImportError:
-            raise ValueError(
-                "You must install detect-secrets in order to "
-                "use the DetectSecrets validator."
-            )
-        except Exception as e:
-            raise RuntimeError(
-                "Problems with creating a SecretsCollection or "
-                "scanning the file for secrets."
-            ) from e
+                with settings.default_settings():
+                    secrets.scan_file(temp_path)
+            except ImportError:
+                raise ValueError(
+                    "You must install detect-secrets in order to "
+                    "use the DetectSecrets validator."
+                )
 
-        # Get unique secrets from these secrets
-        unique_secrets = {}
-        for secret in secrets:
-            _, potential_secret = secret
-            actual_secret = potential_secret.secret_value
-            line_number = potential_secret.line_number
-            if actual_secret not in unique_secrets:
-                unique_secrets[actual_secret] = [line_number]
-            else:
-                # if secret already exists, avoid duplicate line numbers
-                if line_number not in unique_secrets[actual_secret]:
-                    unique_secrets[actual_secret].append(line_number)
+            # Get unique secrets from these secrets
+            unique_secrets = {}
+            for secret in secrets:
+                _, potential_secret = secret
+                actual_secret = potential_secret.secret_value
+                line_number = potential_secret.line_number
+                if actual_secret not in unique_secrets:
+                    unique_secrets[actual_secret] = [line_number]
+                else:
+                    if line_number not in unique_secrets[actual_secret]:
+                        unique_secrets[actual_secret].append(line_number)
 
-        try:
-            # File no longer needed, read the lines from the file
-            with open(self.temp_file_name, "r") as f:
+            with open(temp_path, "r") as f:
                 lines = f.readlines()
-        except Exception as e:
-            raise OSError(
-                "Problems reading the temporary file. "
-                "Please check the permissions of the current directory."
-            ) from e
+        finally:
+            # Always clean up, even if an exception occurred above.
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
 
-        try:
-            # Delete the file
-            os.remove(self.temp_file_name)
-        except Exception as e:
-            raise OSError(
-                "Problems deleting the temporary file. "
-                "Please check the permissions of the current directory."
-            ) from e
         return unique_secrets, lines
 
     def get_modified_value(
