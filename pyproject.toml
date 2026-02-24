@@ -1,6 +1,6 @@
 [project]
 name = "secrets_present"
-version = "0.0.0"
+version = "0.0.1"
 description = "A Guardrails AI validator that detects and masks code secrets in LLM-generated text."
 authors = [
     {name = "Guardrails AI", email = "contact@guardrailsai.com"}
@@ -17,7 +17,8 @@ dependencies = [
 dev = [
     "pyright",
     "pytest",
-    "ruff"
+    "ruff",
+    "pytest-asyncio"
 ]
 
 [tool.pytest.ini_options]
