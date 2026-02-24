@@ -27,6 +27,7 @@ addopts = "-rP"
 testpaths = [
     "test"
 ]
+asyncio_mode = "auto"
 
 [tool.pyright]
 include = ["validator"]

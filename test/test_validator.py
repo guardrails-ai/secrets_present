@@ -61,13 +61,15 @@ def test_concurrent_validation():
         guard = Guard().use(SecretsPresent(on_fail=OnFailAction.NOOP))
         return guard.validate(text)
 
+    # detect-secrets needs multi-line code context to reliably trigger its
+    # heuristics, so use realistic snippets instead of bare one-liners.
     clean_inputs = [
-        "no secrets here\n",
-        "also clean text\n",
-        "nothing to see\n",
+        "def greet():\n    print('hello world')\n",
+        "import os\npath = os.getcwd()\n",
+        "x = 42\ny = x + 1\n",
     ]
     secret_inputs = [
-        'api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"\n',  # gitleaks:allow
+        'def connect():\n    api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"\n    return api_key\n',  # gitleaks:allow
     ]
     inputs = clean_inputs + secret_inputs
 
@@ -91,12 +93,12 @@ async def test_async_concurrent_validation():
         return await guard.validate(text)
 
     clean_inputs = [
-        "no secrets here\n",
-        "also clean text\n",
-        "nothing to see\n",
+        "def greet():\n    print('hello world')\n",
+        "import os\npath = os.getcwd()\n",
+        "x = 42\ny = x + 1\n",
     ]
     secret_inputs = [
-        'api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"\n',  # gitleaks:allow
+        'def connect():\n    api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"\n    return api_key\n',  # gitleaks:allow
     ]
     inputs = clean_inputs + secret_inputs
 
