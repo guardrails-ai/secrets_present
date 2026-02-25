@@ -37,7 +37,7 @@ from guardrails.hub import SecretsPresent
 
 # Setup Guard
 guard = Guard().use(
-    SecretsPresent, on_fail="exception"
+    SecretsPresent(on_fail="exception")
 )
 
 response = guard.validate(
